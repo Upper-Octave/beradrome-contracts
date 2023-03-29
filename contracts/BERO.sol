@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
 
-import "contracts/interfaces/IFlow.sol";
+import "contracts/interfaces/IBERO.sol";
 
 contract BERO is IBERO {
     string public constant name = "Beradrome";
