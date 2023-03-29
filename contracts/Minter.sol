@@ -5,7 +5,7 @@ import "openzeppelin-contracts/contracts/utils/math/Math.sol";
 
 import "contracts/interfaces/IMinter.sol";
 import "contracts/interfaces/IRewardsDistributor.sol";
-import "contracts/interfaces/IFlow.sol";
+import "contracts/interfaces/IBERO.sol";
 import "contracts/interfaces/IVoter.sol";
 import "contracts/interfaces/IVotingEscrow.sol";
 
@@ -16,11 +16,11 @@ contract Minter is IMinter {
     uint256 internal constant EMISSION = 990;
     uint256 internal constant TAIL_EMISSION = 2;
     uint256 internal constant PRECISION = 1000;
-    IFlow public immutable _flow;
+    IBERO public immutable _BERO;
     IVoter public immutable _voter;
     IVotingEscrow public immutable _ve;
     IRewardsDistributor public immutable _rewards_distributor;
-    uint256 public weekly = 15_000_000 * 1e18; // represents a starting weekly emission of 15M FLOW (FLOW has 18 decimals)
+    uint256 public weekly = 15_000_000 * 1e18; // represents a starting weekly emission of 15M BERO (BERO has 18 decimals)
     uint256 public active_period;
     uint256 internal constant LOCK = 86400 * 7 * 52 * 4;
 
@@ -45,7 +45,7 @@ contract Minter is IMinter {
         initializer = msg.sender;
         team = msg.sender;
         teamRate = 30; // 30 bps = 3%
-        _flow = IFlow(IVotingEscrow(__ve).token());
+        _BERO = IBERO(IVotingEscrow(__ve).token());
         _voter = IVoter(__voter);
         _ve = IVotingEscrow(__ve);
         _rewards_distributor = IRewardsDistributor(__rewards_distributor);
@@ -58,8 +58,8 @@ contract Minter is IMinter {
         uint256 max // sum amounts / max = % ownership of top protocols, so if initial 20m is distributed, and target is 25% protocol ownership, then max - 4 x 20m = 80m
     ) external {
         require(initializer == msg.sender);
-        _flow.mint(address(this), max);
-        _flow.approve(address(_ve), type(uint256).max);
+        _BERO.mint(address(this), max);
+        _BERO.approve(address(_ve), type(uint256).max);
         for (uint256 i = 0; i < claimants.length; i++) {
             _ve.create_lock_for(amounts[i], LOCK, claimants[i]);
         }
@@ -85,7 +85,7 @@ contract Minter is IMinter {
 
     // calculate circulating supply as total token supply - locked supply
     function circulating_supply() public view returns (uint256) {
-        return _flow.totalSupply() - _ve.totalSupply();
+        return _BERO.totalSupply() - _ve.totalSupply();
     }
 
     // emission calculation is 1% of available supply to mint adjusted by circulating / total supply
@@ -106,11 +106,11 @@ contract Minter is IMinter {
     // calculate inflation and adjust ve balances accordingly
     function calculate_growth(uint256 _minted) public view returns (uint256) {
         uint256 _veTotal = _ve.totalSupply();
-        uint256 _flowTotal = _flow.totalSupply();
+        uint256 _BEROTotal = _BERO.totalSupply();
         return
-            (((((_minted * _veTotal) / _flowTotal) * _veTotal) / _flowTotal) *
+            (((((_minted * _veTotal) / _BEROTotal) * _veTotal) / _BEROTotal) *
                 _veTotal) /
-            _flowTotal /
+            _BEROTotal /
             2;
     }
 
@@ -127,17 +127,17 @@ contract Minter is IMinter {
             uint256 _teamEmissions = (teamRate * (_growth + weekly)) /
                 (PRECISION - teamRate);
             uint256 _required = _growth + weekly + _teamEmissions;
-            uint256 _balanceOf = _flow.balanceOf(address(this));
+            uint256 _balanceOf = _BERO.balanceOf(address(this));
             if (_balanceOf < _required) {
-                _flow.mint(address(this), _required - _balanceOf);
+                _BERO.mint(address(this), _required - _balanceOf);
             }
 
-            require(_flow.transfer(team, _teamEmissions));
-            require(_flow.transfer(address(_rewards_distributor), _growth));
+            require(_BERO.transfer(team, _teamEmissions));
+            require(_BERO.transfer(address(_rewards_distributor), _growth));
             _rewards_distributor.checkpoint_token(); // checkpoint token balance that was just minted in rewards distributor
             _rewards_distributor.checkpoint_total_supply(); // checkpoint supply
 
-            _flow.approve(address(_voter), weekly);
+            _BERO.approve(address(_voter), weekly);
             _voter.notifyRewardAmount(weekly);
 
             emit Mint(
