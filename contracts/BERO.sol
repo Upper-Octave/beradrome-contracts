@@ -4,8 +4,8 @@ pragma solidity 0.8.13;
 import "contracts/interfaces/IFlow.sol";
 
 contract Flow is IFlow {
-    string public constant name = "Velocimeter";
-    string public constant symbol = "FLOW";
+    string public constant name = "Beradrome";
+    string public constant symbol = "BERO";
     uint8 public constant decimals = 18;
     uint256 public totalSupply = 0;
 
