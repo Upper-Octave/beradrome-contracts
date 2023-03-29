@@ -3,7 +3,7 @@ pragma solidity 0.8.13;
 
 import "contracts/interfaces/IFlow.sol";
 
-contract Flow is IFlow {
+contract BERO is IBERO {
     string public constant name = "Beradrome";
     string public constant symbol = "BERO";
     uint8 public constant decimals = 18;
